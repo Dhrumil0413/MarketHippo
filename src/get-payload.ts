@@ -47,7 +47,7 @@ export const getPayloadClient = async ({ initOptions }: Args = {}) : Promise<Pay
                 fromAddress: "onboarding@resend.dev", // Might have to change this email address to "dhrumilvaghasiya413@gmail.com"
                 fromName: "MarketHippo",
             },
-            secret: process.env.PAYLOAD_SECRET,
+            secret: process.env.PAYLOAD_SECRET, 
             local: initOptions?.express ? false : true,
             ...initOptions || {},
         })
