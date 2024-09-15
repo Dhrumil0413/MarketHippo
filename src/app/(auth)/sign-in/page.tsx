@@ -12,7 +12,7 @@ import { useForm } from 'react-hook-form';
 
 import { AuthCredentialsValidator, TAuthCredentialsValidator } from "@/lib/validators/account-credentials-validators";
 import { trpc } from "@/trpc/client";
-import {toast} from "sonner"
+import {toast} from "sonner" // Toast library to show good designed popup info bars in app for any messages.
 import { ZodError } from "zod";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -23,34 +23,46 @@ const Page = () => {
     const isSeller = searchParams.get('as') === 'seller';
     const origin = searchParams.get('origin');
 
+    const continueAsSeller = () => {
+        router.push("?as=seller");
+    }
+
+    const continueAsBuyer = () => {
+        router.replace("/sign-in", undefined);
+    }
+
     const { register, handleSubmit, formState: { errors } } = useForm<TAuthCredentialsValidator>({ resolver: zodResolver(AuthCredentialsValidator) });
 
 
-    const {mutate, isLoading} = trpc.auth.createPayloadUser.useMutation({
-        
+    const {mutate: signIn, isLoading} = trpc.auth.signIn.useMutation({
+        onSuccess: () => {
+            toast.success('Signed in Successfully');
 
-        onError:(err) => {
-            if (err.data?.code === "CONFLICT") {
-                toast.error(
-                    "This email is already in use. Sign in instead!"
-                );
-            }
-            if (err instanceof ZodError) {
-                toast.error(err.issues[0].message);
+            router.refresh();
+
+            if (origin) {
+                router.push(`/${origin}`);
                 return;
             }
 
-            toast.error('Something went wrong! Please try again!');
+            if (isSeller) {
+                router.push('/sell');
+                return;
+            }
+
+            router.push('/');
         },
-        onSuccess: ({sentToEmail}) => {
-            toast.success(`Verification email sent to ${sentToEmail}.`);
-            router.push('/verify-email?to=' + sentToEmail);
+
+        onError: (err) => {
+            if (err.data?.code === "UNAUTHORIZED") {
+                toast.error("Invalid email or Password");
+            }
         }
     })
 
     function onSubmit({ email, password }: TAuthCredentialsValidator) {
         // Send this data to the server that will create. An Email Server as well
-        mutate({email, password})
+        signIn({email, password})
     }
 
     return (
@@ -102,6 +114,10 @@ const Page = () => {
                                 <span className="bg-background px-2 text-muted-foreground">or</span>
                             </div>
                         </div>
+                        {
+                            isSeller ? (<Button onClick={continueAsBuyer} variant="secondary" disabled={isLoading}>Continue As Customer</Button>)
+                             : (<Button onClick={continueAsSeller} variant="secondary" disabled={isLoading} >Continue As Seller</Button>)
+                        }
                     </div>
                 </div>
             </div>
